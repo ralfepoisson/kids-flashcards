@@ -3,6 +3,8 @@ async function acceptance(page, fixtureOptions = {}) {
   // public fixture first; this check never substitutes authentication/data.
   const privateSetId = fixtureOptions.privateSetId;
   const privateImageUrl = fixtureOptions.privateImageUrl;
+  const scriptErrors = [];
+  page.on('pageerror', error => scriptErrors.push(error.message));
   const origin = 'http://127.0.0.1:4200';
   const check = (value, message) => { if (!value) throw new Error(message); };
   check(privateSetId, 'Pass fixtureOptions.privateSetId for a real disposable private series');
@@ -60,5 +62,6 @@ async function acceptance(page, fixtureOptions = {}) {
   await page.screenshot({ path: 'output/playwright/auth-guest-mobile.png', fullPage: true });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({ path: 'output/playwright/auth-guest-practice.png', fullPage: true });
-  console.log('AUTH_GUEST_ACCEPTANCE_OK: public listing/practice/images, private ID denial, mutation denial, edit deep links, mobile layouts');
+  check(scriptErrors.length === 0, 'No browser script errors: ' + scriptErrors.join('; '));
+  return { result: 'PASS', checks: 'public listing/practice/images, private series/image denial, mutation denial, edit deep links, 390px/320px layouts, no browser script errors' };
 }

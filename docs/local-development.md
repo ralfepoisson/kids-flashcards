@@ -104,7 +104,7 @@ cd ../..
 
 Run available frontend unit and browser test commands from `src/frontend/package.json`. Browser acceptance must exercise the served frontend against real Life2 Auth, the API, and PostgreSQL: log in, create/edit/delete owned sets and cards, switch public/private visibility, reorder, upload a picture, reload to confirm persistence, then practice flipping and navigating a shuffled set. Check anonymous public browsing/practice, private-series and private-picture denial, unsigned write denial, and another owner's inability to edit a public series. Confirm success and error notifications are visible. Avoid using production or unrelated application databases for these checks.
 
-On Node 26, run frontend tests with `NODE_OPTIONS=--no-experimental-webstorage npm test -- --watch=false` so jsdom supplies browser storage instead of Node's global storage. This does not affect the served application.
+On Node 26, run frontend tests with `NODE_OPTIONS=--no-experimental-webstorage npm test -- --watch=false` so jsdom supplies browser storage instead of Node's global storage. This does not affect the served application. The Angular runner uses one Vitest thread worker; the final 28-test auth suite passed under the installed Node 24 runtime.
 
 ## Persistence and maintenance
 
@@ -159,11 +159,10 @@ This checks the default language, saved preference on reload, both flags and the
 
 Use a genuine Life2 login at `http://127.0.0.1:4200`. Confirm the code is removed from the callback URL, login succeeds, **CM1 Allemand** has owner controls for `ralfepoisson@gmail.com`, and authenticated state survives reload. CM1 Allemand is public at the user's request, so guests may practise it. The session cookie must be HttpOnly; browser localStorage must contain no token. Create a disposable series named `Auth browser acceptance <unique suffix>` with a text card and an uploaded picture card, mark it public, and confirm that its owner can still edit it. Use a separate disposable private series to verify private access denial.
 
-Then run the guest check in a separate disposable browser session. It clears that session's cookies:
+Then run the guest check in a separate disposable browser session. Replace the arguments below with the UUID and actual uploaded image URL of your disposable private series. The second argument is optional. The helper generates an ignored runner, runs the check, and removes that runner; it clears only the test browser session's cookies:
 
 ```bash
-npx --yes @playwright/cli --session kids-auth-guest open http://127.0.0.1:4200 --headed
-npx --yes @playwright/cli --session kids-auth-guest run-code --filename scripts/auth-guest-acceptance.js
+./scripts/auth-guest-acceptance.sh PRIVATE_TEST_SERIES_ID /uploads/PRIVATE_TEST_IMAGE.png
 ```
 
-The check uses the real public fixture, verifies anonymous library/practice/pictures, private-series denial, denial of all unsigned mutations, Edit deep-link fallback to Practice, uncached image responses, and 390/320px layouts. Screenshots are saved under ignored `output/playwright/auth-guest-*.png`. Return to the signed-in owner session, make the disposable series private, and verify that the guest can no longer fetch the series or its pictures. Test a second real account's read-only access to the public fixture before deleting only the disposable series. Preserve the user's original series and uploads.
+The check uses the real public fixture, verifies anonymous library/practice/pictures, private-series denial, denial of all unsigned mutations, Edit deep-link fallback to Practice, uncached image responses, and 390/320px layouts. Screenshots are saved under ignored `output/playwright/auth-guest-*.png`. Return to the signed-in owner session, make the disposable series private, and verify that the guest can no longer fetch the series or its pictures. When a second real account is available, verify its read-only access to the public fixture before deleting only the disposable series. Cross-account access is also covered by backend and frontend unit checks. Preserve the user's original series and uploads.
