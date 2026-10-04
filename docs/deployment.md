@@ -6,7 +6,7 @@ Read [implementation guidelines](implementation-guidelines.md), [architecture](a
 
 The current EC2 host is `personal-projects` (ARM64). Apache handles `www.ralfepoisson.com` behind the existing HTTPS ingress. The app binds only `127.0.0.1:48100`, with a candidate validation port at 48101. Production lives under `/srv/apps/kids-flashcards`. Secrets and uploads never enter Git or the Docker build context.
 
-Run host configuration/deployment commands as the privileged account able to read the protected environment file (on this host, use `sudo -n`). Copy `deploy/.env.example` to `/srv/apps/kids-flashcards/.env`, replace placeholders, and restrict it to mode 0600. Set the dedicated database URL, existing PostgreSQL network, Life2 application ID, and signing-key file. Pre-create `/srv/apps/kids-flashcards/uploads` owned by UID/GID 10001. The key file must be readable by UID10001, preferably mode 0400; keep the parent secret directory restricted. Compose mounts it read-only. The app also joins a separate bridge ingress network: the shared PostgreSQL network is internal and cannot publish host ports on its own.
+Run host configuration/deployment commands as the privileged account able to read the protected environment file (on this host, use `sudo -n`). Copy `deploy/.env.example` to `/srv/apps/kids-flashcards/.env`, replace placeholders, and restrict it to mode 0600. Set the dedicated database URL, existing PostgreSQL network, Life2 application ID, and signing-key file. Pre-create `/srv/apps/kids-flashcards/uploads` owned by UID/GID 10001. The key file must be readable by UID10001, preferably mode 0400; keep the parent secret directory restricted. Compose mounts it read-only. The app also joins an explicitly created external bridge ingress network: the shared PostgreSQL network is internal and cannot publish host ports on its own.
 
 Register `https://www.ralfepoisson.com/flashcards/auth/callback` in production Life2 Auth and use `https://auth.life-sqrd.com` as its base URL. The verification key must match the **running issuer**; the historical standalone Auth signing-key file on this host was stale at initial setup. Derive the protected Flashcards file from the active Auth configuration entirely on the host, without exposing its value. Rotate this file whenever the issuer key rotates, then restart Flashcards.
 
@@ -21,6 +21,16 @@ Commit intended changes first. This command archives only the selected Git commi
 ```
 
 The resulting image tag is `kids-flashcards:<full-commit-sha>` and the OCI revision label records that exact source commit. The final runtime uses image IDs during deployment, preserving older images for rollback. The Dockerfile also works with `docker build --build-arg VCS_REF=<sha> -t kids-flashcards:<sha> .` on an ordinary Docker host; build on ARM64 or explicitly choose the target platform.
+
+## Ingress network preparation
+
+The existing EC2 Docker default address pools are exhausted. Preserve existing networks and create the dedicated ingress bridge with a verified unused subnet instead of pruning anything. On this host `10.250.44.0/28` was checked against Docker network IPAM and host routes before creation:
+
+```bash
+sudo docker network create --driver bridge --subnet 10.250.44.0/28 kids-flashcards-ingress
+```
+
+Set `INGRESS_NETWORK=kids-flashcards-ingress`. Candidate and active containers share this small external network; candidate cleanup does not remove it. On another host select an unused subnet first.
 
 ## Initial database preparation
 

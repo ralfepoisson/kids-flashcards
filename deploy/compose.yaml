@@ -48,7 +48,8 @@ secrets:
 
 networks:
   ingress:
-    driver: bridge
+    external: true
+    name: ${INGRESS_NETWORK:-kids-flashcards-ingress}
   postgres:
     external: true
     name: ${POSTGRES_NETWORK:?Set the existing PostgreSQL Docker network}
