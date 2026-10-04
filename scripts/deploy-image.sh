@@ -63,6 +63,7 @@ else
   if [[ -n "$previous_image" ]]; then
     echo "Restoring previous image $previous_image" >&2
     KIDS_FLASHCARDS_IMAGE="$previous_image" "${compose[@]}" -p "$project" up -d --wait --wait-timeout 90 --pull never
+    verify_container "$("${compose[@]}" -p "$project" ps -q kids-flashcards)"
   else
     "${compose[@]}" -p "$project" down
   fi
