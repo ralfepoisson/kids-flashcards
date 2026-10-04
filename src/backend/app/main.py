@@ -27,7 +27,8 @@ settings.upload_dir.mkdir(parents=True, exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app):
-    Base.metadata.create_all(engine)
+    if settings.initialize_schema:
+        Base.metadata.create_all(engine)
     yield
 
 
@@ -38,7 +39,7 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_me
 @app.middleware('http')
 async def private_responses(request: Request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith(('/api/auth', '/api/sets', '/api/uploads', '/uploads')):
+    if request.url.path.removeprefix(request.scope.get('root_path', '')).startswith(('/api/auth', '/api/sets', '/api/uploads', '/uploads')):
         response.headers['Cache-Control'] = 'private, no-store'
         response.headers['Vary'] = 'Origin, Cookie, Authorization'
     return response
@@ -95,7 +96,7 @@ def auth_session(payload: SessionInput, request: Request, response: Response):
     check_origin(request)
     identity = verify_token(payload.token)
     expires = json.loads(decode_segment(payload.token.split('.')[1]))['exp']
-    response.set_cookie(COOKIE_NAME, payload.token, max_age=max(1, int(expires - time.time())), path='/',
+    response.set_cookie(COOKIE_NAME, payload.token, max_age=max(1, int(expires - time.time())), path=settings.cookie_path,
                         httponly=True, secure=settings.cookie_secure, samesite='lax')
     return {'authenticated': True, 'user': identity.output()}
 
@@ -104,7 +105,7 @@ def auth_session(payload: SessionInput, request: Request, response: Response):
 def logout(request: Request):
     check_origin(request)
     response = Response(status_code=204)
-    response.delete_cookie(COOKIE_NAME, path='/', secure=settings.cookie_secure, httponly=True, samesite='lax')
+    response.delete_cookie(COOKIE_NAME, path=settings.cookie_path, secure=settings.cookie_secure, httponly=True, samesite='lax')
     return response
 
 

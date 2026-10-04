@@ -1,0 +1,51 @@
+services:
+  kids-flashcards:
+    image: ${KIDS_FLASHCARDS_IMAGE:?Set an immutable application image}
+    restart: unless-stopped
+    init: true
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    ports:
+      - "127.0.0.1:${FLASHCARDS_PORT:-48100}:8080"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set the dedicated PostgreSQL database URL}
+      LIFE2_APPLICATION_ID: ${LIFE2_APPLICATION_ID:?Set the registered Life2 application ID}
+      LIFE2_JWT_SIGNING_KEY_FILE: /run/secrets/life2_jwt_key
+      LIFE2_AUTH_BASE_URL: ${LIFE2_AUTH_BASE_URL:?Set the Life2 Auth HTTPS base URL}
+      LIFE2_CALLBACK_URL: https://www.ralfepoisson.com/flashcards/auth/callback
+      CORS_ORIGINS: https://www.ralfepoisson.com
+      COOKIE_SECURE: "true"
+      COOKIE_PATH: /flashcards
+      INITIALIZE_SCHEMA: "false"
+      APP_BASE_PATH: /flashcards
+      FRONTEND_DIR: /app/frontend
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - type: bind
+        source: ${UPLOADS_DIR:-./uploads}
+        target: /app/uploads
+        bind:
+          create_host_path: false
+    secrets:
+      - life2_jwt_key
+    networks:
+      - postgres
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+secrets:
+  life2_jwt_key:
+    file: ${LIFE2_JWT_SIGNING_KEY_FILE:?Set the host signing-key file path}
+
+networks:
+  postgres:
+    external: true
+    name: ${POSTGRES_NETWORK:?Set the existing PostgreSQL Docker network}

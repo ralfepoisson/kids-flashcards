@@ -77,3 +77,7 @@ Edit Mode supports set/card creation, editing, deletion, and explicit saved reor
 ## Interface language
 
 English/French selection is local UI state, persisted under `kids-flashcards-language` in browser localStorage. Page loads restore `en` or `fr`; absent, invalid, or inaccessible storage defaults to French. It does not change API requests, set names/descriptions, card faces, image URLs, instructions, explanations, or stored order. No database migration is required. Known API error messages are translated by the frontend; unfamiliar French errors use a localized failure message, with validation failures prompting users to check their inputs.
+
+## Production subpath
+
+Production serves the UI at `/flashcards/`, JSON routes at `/flashcards/api/*`, and protected pictures at `/flashcards/uploads/*`. Card records retain canonical `/uploads/<filename>` references; the frontend prefixes the deployment base only when rendering or fetching. The cookie uses `/flashcards`, Secure, HttpOnly, and SameSite=Lax. Life2's registered callback is `https://www.ralfepoisson.com/flashcards/auth/callback`. Deep page URLs reload through the compiled index; missing API routes, uploads, and assets return 404.

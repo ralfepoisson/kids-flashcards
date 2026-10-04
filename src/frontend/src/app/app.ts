@@ -21,6 +21,9 @@ export class App implements OnInit {
     return this.i18n.t(key, values);
   }
   private api = inject(Api);
+  pictureUrl(content: string) {
+    return this.api.pictureUrl(content);
+  }
   private toast = inject(ToastrService);
   private location = inject(Location);
   private destroyRef = inject(DestroyRef);

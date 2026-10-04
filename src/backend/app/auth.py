@@ -98,7 +98,7 @@ def current_identity(request: Request, response: Response):
         except HTTPException as error:
             if error.status_code != 401:
                 raise
-            response.delete_cookie(COOKIE_NAME, path='/', secure=settings.cookie_secure, httponly=True, samesite='lax')
+            response.delete_cookie(COOKIE_NAME, path=settings.cookie_path, secure=settings.cookie_secure, httponly=True, samesite='lax')
     return None
 
 

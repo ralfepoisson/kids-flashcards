@@ -20,6 +20,8 @@ class Settings:
     life2_auth_url: str = os.getenv('LIFE2_AUTH_BASE_URL', os.getenv('LIFE2_AUTH_URL', 'http://auth-service.localhost:46138')).rstrip('/')
     life2_callback_url: str = os.getenv('LIFE2_CALLBACK_URL', 'http://127.0.0.1:4200/auth/callback')
     cookie_secure: bool = os.getenv('COOKIE_SECURE', 'false').lower() == 'true'
+    cookie_path: str = os.getenv('COOKIE_PATH', '/')
+    initialize_schema: bool = os.getenv('INITIALIZE_SCHEMA', 'true').lower() == 'true'
     max_upload_bytes: int = 10 * 1024 * 1024
 
 

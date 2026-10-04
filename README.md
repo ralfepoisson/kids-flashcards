@@ -41,6 +41,12 @@ Consult the [architecture](docs/architecture.puml), [database ERD](docs/erd.puml
 
 See [local verification](docs/verification.md) for the completed checks and [local development](docs/local-development.md) for repeatable browser acceptance.
 
+## Deployment
+
+The app can run as a single Docker image containing the compiled Angular UI and FastAPI server. PostgreSQL and uploaded pictures remain persistent outside the image. Production is hosted under [Kids Flashcards](https://www.ralfepoisson.com/flashcards/).
+
+See [EC2 deployment](docs/deployment.md) for build, configuration, Apache routing, backups, upgrade, and rollback commands.
+
 ## License
 
 See [LICENSE](LICENSE).

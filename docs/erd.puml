@@ -73,4 +73,10 @@ note right of Cards
   Set ID and mode appear in browser paths; mode is not persisted here.
   Opening from the library defaults to Practice.
 end note
+note bottom of Sets
+  Production uses a dedicated kids_flashcards PostgreSQL database.
+  One application image connects to the existing database server.
+  No schema changes are required for /flashcards hosting.
+  Back up rows and persistent uploads together for deployment/rollback.
+end note
 @enduml

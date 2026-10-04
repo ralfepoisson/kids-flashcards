@@ -157,7 +157,7 @@
                 </div>
                 <div class="tile-face">
                   @if (card.front_type === 'image') {
-                    <img [src]="card.front_content" [alt]="t('frontAlt')" />
+                    <img [src]="pictureUrl(card.front_content)" [alt]="t('frontAlt')" />
                   } @else {
                     <h3>{{ card.front_content }}</h3>
                   }
@@ -168,7 +168,7 @@
                 <div class="tile-answer">
                   <span>{{ t('back') }}</span>
                   @if (card.back_type === 'image') {
-                    <img [src]="card.back_content" [alt]="t('backAlt')" />
+                    <img [src]="pictureUrl(card.back_content)" [alt]="t('backAlt')" />
                   } @else {
                     <p>{{ card.back_content }}</p>
                   }
@@ -239,7 +239,7 @@
                     >
                       <span class="face-label">{{ t('front') }}</span>
                       @if (card.front_type === 'image') {
-                        <img [src]="card.front_content" [alt]="t('frontAlt')" />
+                        <img [src]="pictureUrl(card.front_content)" [alt]="t('frontAlt')" />
                       } @else {
                         <span class="practice-text">{{ card.front_content }}</span>
                       }
@@ -254,7 +254,7 @@
                     >
                       <span class="face-label">{{ t('back') }}</span>
                       @if (card.back_type === 'image') {
-                        <img [src]="card.back_content" [alt]="t('backAlt')" />
+                        <img [src]="pictureUrl(card.back_content)" [alt]="t('backAlt')" />
                       } @else {
                         <span class="practice-text">{{ card.back_content }}</span>
                       }
@@ -545,7 +545,7 @@
                 @if (cardDraft.front_content) {
                   <img
                     class="upload-preview"
-                    [src]="cardDraft.front_content"
+                    [src]="pictureUrl(cardDraft.front_content)"
                     [alt]="t('frontPreview')"
                   />
                 }
@@ -602,7 +602,7 @@
                 @if (cardDraft.back_content) {
                   <img
                     class="upload-preview"
-                    [src]="cardDraft.back_content"
+                    [src]="pictureUrl(cardDraft.back_content)"
                     [alt]="t('backPreview')"
                   />
                 }

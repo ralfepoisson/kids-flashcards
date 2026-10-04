@@ -106,4 +106,24 @@ note bottom of Language
   Practice state, drafts, and stored content are unchanged.
   No API or database language setting.
 end note
+package "EC2 deployment" {
+  [Existing HTTPS ingress / Apache] as Ingress
+  [Single Docker image: Uvicorn + compiled Angular] as Image
+  [Subpath host (/flashcards)] as Site
+  [Read-only Life2 key mount] as ProductionKey
+}
+Ingress --> Image : /flashcards/ to loopback port 48100
+Image --> Site : non-root process on 8080
+Site --> Routes : /flashcards/api/* and protected uploads
+Site --> Navigation : index fallback for deep links
+Image --> ProductionKey : secret file outside image
+Image --> Database : existing PostgreSQL network; dedicated database
+Image --> Files : persistent host upload directory
+note bottom of Site
+  Angular base href /flashcards/ scopes API, picture, and page URLs.
+  Database picture references remain canonical /uploads/*.
+  API / picture misses return 404; never index HTML.
+  Secure HttpOnly cookie is scoped to /flashcards.
+  Production startup does not migrate schema.
+end note
 @enduml
