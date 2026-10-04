@@ -56,7 +56,8 @@ async page => {
     check(new URL(page.url()).pathname === '/flashcards/' && !new URL(page.url()).search, 'Callback code scrubbed within mount');
     await page.goto(root + 'unknown-page');
     await page.getByRole('button',{name:'Log in',exact:true}).waitFor();
-    check(new URL(page.url()).pathname === '/flashcards/', 'Unknown SPA path recovers to library');
+    await page.waitForURL(/\/flashcards\/?$/);
+    check(/^\/flashcards\/?$/.test(new URL(page.url()).pathname), 'Unknown SPA path recovers to library');
     check(errors.length===0, 'No browser script errors: '+errors.join('; '));
     return {result:'PASS',publicSetCount:sets.length,practiceChecked:!!set,checks:'real DB/API, base path, deep-link reload, guest denial, API/upload errors, callback scrubbing, mobile overflow and existing public practice/images when present'};
   } finally {page.off('pageerror',onError);}

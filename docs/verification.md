@@ -55,14 +55,49 @@ Repeat the checks using the commands in [local development](local-development.md
 
 - The dedicated development database was backed up to ignored `.runtime/pre-auth-backup.dump`. All 52 existing upload files were preserved and checksummed in `.runtime/pre-auth-uploads-manifest.json`.
 - The explicit additive migration `src/backend/migrate_auth.py` added public/private visibility and immutable owner fields plus upload-owner metadata, preserving existing series and cards.
-- All 19 backend tests passed after the final authentication backend changes, using the isolated PostgreSQL test database. This validates backend behavior; interactive Life2 login is a separate running-service check.
+- All 22 backend tests passed against the isolated PostgreSQL test database, including auth, upload visibility, CSRF, subpath hosting, and existing API behavior.
 - The local Life2 account mapping for `ralfepoisson@gmail.com` was verified. Only the requested existing series (`0d538496-4662-4f4c-bc23-7d3f36410aa0`) was assigned to its verified subject/account and renamed from **CM1 German** to **CM1 Allemand**. At the user's subsequent request it was made public; ownership and all 20 cards were preserved. Anyone may practise it, and only its owner may change it.
 - Repeatable real guest acceptance is available in `scripts/auth-guest-acceptance.js`; it requires the signed-in disposable public fixture described in [local development](local-development.md). The migration and data readback do not by themselves verify a successful interactive Life2 login.
 
 ## Authentication running-service acceptance — 4 October 2026
 
-- All 28 frontend tests passed, including 10 auth/access cases. The production build passed (621.43 kB initial output, 119.94 kB estimated transfer). Both PlantUML sources passed `plantuml -checkonly`.
+- All 31 frontend tests passed across 5 files, including 10 auth/access tests and the 3 subpath deployment tests. The production build passed (621.43 kB initial output, 119.94 kB estimated transfer). Both PlantUML sources passed `plantuml -checkonly`.
 - A genuine local Life2 Cognito session continued through the registered Kids Flashcards application. The handoff exchange and session establishment returned 200; the callback code disappeared and the owner returned to the requested CM1 Allemand Practice URL with editing controls. No token or code was printed or stored in browser storage.
 - Signed-in UI checks created separate public and private disposable series and uploaded real pictures. The session, private series, images, and Edit deep link survived reload. The public checkbox reflected persisted state. Making a public fixture private immediately changed anonymous series and image requests to 404 while its owner still reloaded Edit successfully.
-- The real guest browser check passed public library/practice/flip/image access, missing mutation controls, HTTP 401 on guest writes, private series/image HTTP 404, Edit-link fallback to Practice, uncached metadata/images, and 390px/320px layouts. Screenshots are under ignored `output/playwright/auth-guest-*.png`.
-- Logout cleared private selection, series, drafts and owner controls; reload after a complete local service restart retained guest state. The existing public CM1 Allemand remained visible with 20 cards.
+- The real guest browser check passed public library/practice/flip/image access, missing mutation controls, HTTP 401 on guest writes, private series/image HTTP 404, Edit-link fallback to Practice, uncached metadata/images, and 390px/320px layouts. Screenshots are under ignored `output/playwright/auth-guest-*.png`; the final CM1 view is `output/playwright/auth-cm1-public.png`.
+- Logout cleared private selection, series, drafts and owner controls; reload after a complete local service restart retained guest state. The existing public CM1 Allemand remained visible with 20 cards. The owner view is open at `http://127.0.0.1:4200/set/0d538496-4662-4f4c-bc23-7d3f36410aa0/practice`.
+
+
+## EC2 single-image release — 4 October 2026
+
+- Public deployment: [Kids Flashcards](https://www.ralfepoisson.com/flashcards). One ARM64 application image serves Angular and FastAPI; the dedicated PostgreSQL database and persistent upload bind mount remain outside the image. Both bare and slash-prefixed entry URLs work. The existing website homepage still returns HTTP 200.
+- Application source revision: `6961e2d87e67c7983e7bf453c7bf48da8655380d`. Running image ID: `sha256:8a865faf2d1c9aaaa776950d8e712e158111b66fb8001d885fa37ae5f1dea8f1`. The container is healthy, uses UID/GID10001, has a read-only filesystem, and publishes only host loopback 48100. Candidate 48101 is checked before activation; older images are retained. The release path and image restoration were exercised before final activation.
+- Served HTML and the image's compiled index have matching SHA256 `afefcb608934d1015d6b27e77c7fbb77c2e274a423c7525444211717271b4b36`. Application source after this revision was unchanged; subsequent commits only record evidence and improve browser verification timing.
+- Full backend suite: 22 passing tests with dedicated real PostgreSQL. Frontend suite: 31 passing tests across 5 files under Node 24 with threaded Vitest workers and `NODE_OPTIONS=--no-experimental-webstorage`. Final Angular production output: 621.94 kB. Shell syntax, Compose validation, and both PlantUML diagrams passed. Local development services were restarted; the compiled local preview also passed real subpath acceptance.
+- Real production Life2 login completed using the registered application and active issuer key. The callback code was scrubbed; a Secure HttpOnly cookie established the session. A private disposable series and genuine image survived reload and an exact container restart. Guest series/image requests returned 404, guest writes returned 401, owner practice worked, and logout removed the session. Callback query codes are excluded from Apache access logging; Uvicorn access logging is disabled.
+- `scripts/deployment-browser-acceptance.js` passed against production with the public CM1 series: API health/listing, uncached public images, deep links/reloads, real image rendering, flip/next/previous, guest Edit fallback, denied writes, actual API/upload 404s, callback-error feedback and URL scrubbing, unknown-route recovery, and no horizontal overflow at 320/390/1200 px. No JavaScript errors occurred. Unknown-route verification waits for Angular's actual URL normalization.
+
+## Public CM1 Allemand production migration — 4 October 2026
+
+- The user's explicit migration request retained public visibility. Source and destination UUID: `0d538496-4662-4f4c-bc23-7d3f36410aa0`; 20 cards and 20 referenced pictures. No unrelated development sets or orphan uploads were copied.
+- A repeatable-read source export preserved IDs, order, content, instructions/explanations, creation time, and public visibility. The ACTIVE production account was verified independently; its account ID differs from development, so the import used the production mapping instead of copying the source account ID.
+- Database/upload backups precede the import. Restore rehearsal, transaction/collision checks, and repeat idempotence passed in the scratch database and production. The source package SHA256 is `cf6dbe8e9b9a2d5932a0449f36520e9a4b863dce28b2d66e66f2f036338addde`. Recovery artifacts and the scoped importer remain under the protected host backup directory documented in [deployment](deployment.md).
+- Independent anonymous HTTPS readback matched all 20 card fields and all 20 image byte lengths/SHA256 checksums to the source manifest. SQL readback separately verified the production owner, public visibility, dense positions 0–19, and all 20 picture owners. The same public equality checks passed after restarting the exact production container. Anonymous `can_edit` is false.
+- Only our backed-up temporary private acceptance fixture, its card, and its unreferenced picture were deleted. The rehearsal database and temporary credential file were removed. The original development CM1 series remains intact. Production screenshot: ignored `output/playwright/cm1-production-public.png`.
+
+## Git consolidation
+
+All intended work is committed on local `main`; no Git push was requested. The only worktree is the original checkout, and there were no additional local branches to merge or remove. Ignored runtime data, credentials, backups, screenshots, and upload files remain outside Git.
+
+Created commits:
+
+- `ba6730d`: preserve the authenticated bilingual flashcards application and acceptance checks.
+- `6280c7b`: preserve completed Life2 browser acceptance documentation and guest runner.
+- `2136831`: add the single-image EC2 subpath deployment.
+- `50c8ce9`: pin the Linux database runtime and verify restored releases.
+- `b59cea1`: add ingress publishing and host reachability checks.
+- `5e65ae4`: select an explicit unused ingress subnet on the shared host.
+- `6961e2d`: exclude login callback codes from production access logs.
+- Final closeout commit: record production/migration evidence and wait for browser URL recovery.
+
+Final closeout uses Git status, unmerged-branch checks, worktree inventory, and the integration log. Deployment tests above are independent of the clean-up-git skill's Git-only consolidation checks.
