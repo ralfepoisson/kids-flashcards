@@ -33,6 +33,7 @@ services:
     secrets:
       - life2_jwt_key
     networks:
+      - ingress
       - postgres
     stop_grace_period: 20s
     logging:
@@ -46,6 +47,8 @@ secrets:
     file: ${LIFE2_JWT_SIGNING_KEY_FILE:?Set the host signing-key file path}
 
 networks:
+  ingress:
+    driver: bridge
   postgres:
     external: true
     name: ${POSTGRES_NETWORK:?Set the existing PostgreSQL Docker network}
