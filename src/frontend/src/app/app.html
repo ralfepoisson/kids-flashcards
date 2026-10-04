@@ -1,0 +1,683 @@
+<div class="app-shell" [attr.inert]="editor() || deleteTarget() ? '' : null">
+  <aside class="sidebar">
+    <button class="brand" (click)="library()" [attr.aria-label]="t('brandHome')">
+      <span class="brand-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span
+      ><span
+        >{{ t('brand') }}<small>{{ t('tagline') }}</small></span
+      >
+    </button>
+    <div class="sidebar-heading">{{ t('learningSpace') }}</div>
+    <button class="nav-item active" (click)="library()">
+      <i class="fa-solid fa-book-open" aria-hidden="true"></i
+      >{{ t(user() ? 'mySets' : 'publicSets') }}<span>{{ sets().length }}</span>
+    </button>
+    <div class="sidebar-heading mt-4">{{ t(user() ? 'yourSets' : 'availableSets') }}</div>
+    @for (set of sets(); track set.id) {
+      <button
+        class="set-link"
+        [class.selected]="selected()?.id === set.id"
+        (click)="selectSet(set)"
+        [disabled]="busy()"
+      >
+        <i class="fa-regular fa-folder" aria-hidden="true"></i><span>{{ set.name }}</span
+        ><small>{{ set.card_count }}</small>
+      </button>
+    }
+    @if (!sets().length) {
+      <p class="sidebar-empty">
+        {{ t(user() ? 'discoveryStarts' : 'noPublicSets') }}
+        @if (user()) {
+          <br />{{ t('withSet') }}
+        }
+      </p>
+    }
+    @if (user()) {
+      <button class="sidebar-add" (click)="openSet()" [disabled]="busy()">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>{{ t('createSet') }}
+      </button>
+    }
+    <div class="sidebar-tip">
+      <span class="tip-icon"><i class="fa-regular fa-lightbulb" aria-hidden="true"></i></span
+      ><strong>{{ t('smallSteps') }}</strong>
+      <p>{{ t('tip') }}</p>
+    </div>
+    <div class="sidebar-footer"><span class="status-dot"></span>{{ t('curiousMinds') }}</div>
+  </aside>
+  <main>
+    <header class="topbar">
+      <span><i class="fa-solid fa-seedling" aria-hidden="true"></i>{{ t('learnGrow') }}</span>
+      <div class="topbar-actions">
+        <button
+          type="button"
+          class="language-toggle"
+          (click)="i18n.toggle()"
+          [attr.aria-label]="i18n.language() === 'en' ? 'Passer en français' : 'Switch to English'"
+          [title]="i18n.language() === 'en' ? 'Passer en français' : 'Switch to English'"
+          [attr.lang]="i18n.language() === 'en' ? 'fr' : 'en'"
+        >
+          <span aria-hidden="true">{{ i18n.language() === 'en' ? '🇫🇷' : '🇬🇧' }}</span></button
+        ><span class="local-badge">Kids Flashcards</span>
+        @if (user(); as account) {
+          <span class="account-label" [title]="account.email">{{
+            account.displayName || account.email
+          }}</span>
+        }
+        <button
+          class="auth-button btn btn-outline-secondary"
+          [disabled]="authBusy()"
+          (click)="user() ? logout() : login()"
+        >
+          {{ t(authBusy() ? 'authLoading' : user() ? 'logout' : 'login') }}
+        </button>
+      </div>
+    </header>
+    <div class="workspace">
+      <div class="breadcrumb-line">
+        <button (click)="library()">{{ t(user() ? 'mySets' : 'publicSets') }}</button>
+        @if (selected()) {
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i
+          ><span>{{ selected()!.name }}</span>
+        }
+      </div>
+      @if (selected(); as set) {
+        <section class="page-heading">
+          <div>
+            <div class="eyebrow">{{ t('oneAtTime') }}</div>
+            <h1>{{ set.name }}</h1>
+            <p>{{ set.description || t('lessonCloser') }}</p>
+            <span class="visibility-badge">{{ t(set.is_public ? 'public' : 'private') }}</span>
+          </div>
+          @if (canEdit(set)) {
+            <div class="heading-actions">
+              <button class="btn btn-outline-secondary" (click)="openSet(set)" [disabled]="busy()">
+                <i class="fa-solid fa-pen" aria-hidden="true"></i>{{ t('editSet') }}</button
+              ><button
+                class="icon-button danger"
+                [attr.aria-label]="t('deleteSet')"
+                (click)="deleteTarget.set({ kind: 'set', id: set.id, name: set.name })"
+                [disabled]="busy()"
+              >
+                <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+              </button>
+            </div>
+          }
+        </section>
+        <div class="mode-bar">
+          <div class="mode-switch" [attr.aria-label]="t('chooseMode')">
+            @if (canEdit(set)) {
+              <button [class.active]="mode() === 'edit'" (click)="switchMode('edit')">
+                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>{{ t('editMode') }}
+              </button>
+            }
+            <button [class.active]="mode() === 'practice'" (click)="switchMode('practice')">
+              <i class="fa-solid fa-play" aria-hidden="true"></i>{{ t('practiceMode') }}
+            </button>
+          </div>
+          <span>{{
+            t('cardsInSet', {
+              count: set.cards.length,
+              noun: t(set.cards.length === 1 ? 'card' : 'cards'),
+            })
+          }}</span>
+        </div>
+        @if (mode() === 'edit' && canEdit(set)) {
+          <div class="section-title">
+            <div>
+              <h2>{{ t('yourCards') }}</h2>
+              <p>{{ t('buildLesson') }}</p>
+            </div>
+            <button class="btn btn-primary" (click)="openCard()" [disabled]="busy()">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>{{ t('addCard') }}
+            </button>
+          </div>
+          @if (!set.cards.length) {
+            <section class="empty-state">
+              <div class="empty-art"><i class="fa-regular fa-clone" aria-hidden="true"></i></div>
+              <h2>{{ t('freshStart') }}</h2>
+              <p>{{ t('firstCardHelp') }}<br />{{ t('otherSide') }}</p>
+              <button class="btn btn-primary" (click)="openCard()">
+                {{ t('createFirstCard') }}<i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              </button>
+            </section>
+          }
+          <div class="card-grid">
+            @for (card of set.cards; track card.id; let i = $index) {
+              <article class="flashcard-tile">
+                <div class="tile-top">
+                  <span class="number-badge">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</span
+                  ><span class="face-label">{{ t('front') }}</span
+                  ><button
+                    class="icon-button"
+                    [attr.aria-label]="t('editCard')"
+                    (click)="openCard(card)"
+                    [disabled]="busy()"
+                  >
+                    <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <div class="tile-face">
+                  @if (card.front_type === 'image') {
+                    <img [src]="card.front_content" [alt]="t('frontAlt')" />
+                  } @else {
+                    <h3>{{ card.front_content }}</h3>
+                  }
+                </div>
+                <p class="tile-instruction">
+                  {{ card.front_instruction || t('instructionHint') }}
+                </p>
+                <div class="tile-answer">
+                  <span>{{ t('back') }}</span>
+                  @if (card.back_type === 'image') {
+                    <img [src]="card.back_content" [alt]="t('backAlt')" />
+                  } @else {
+                    <p>{{ card.back_content }}</p>
+                  }
+                </div>
+                <div class="tile-actions">
+                  <div>
+                    <button
+                      class="icon-button"
+                      [attr.aria-label]="t('moveUp')"
+                      [disabled]="i === 0 || busy()"
+                      (click)="reorder(card, -1)"
+                    >
+                      <i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button
+                    ><button
+                      class="icon-button"
+                      [attr.aria-label]="t('moveDown')"
+                      [disabled]="i === set.cards.length - 1 || busy()"
+                      (click)="reorder(card, 1)"
+                    >
+                      <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                  <button
+                    class="icon-button danger"
+                    [attr.aria-label]="t('deleteCard')"
+                    [disabled]="busy()"
+                    (click)="
+                      deleteTarget.set({
+                        kind: 'card',
+                        id: card.id,
+                        name: card.front_type === 'text' ? card.front_content : t('pictureCard'),
+                      })
+                    "
+                  >
+                    <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        } @else {
+          @if (current(); as card) {
+            <section class="practice-space">
+              <div class="practice-meta">
+                <span class="eyebrow">{{ flipped() ? t('answer') : t('try') }}</span
+                ><span>{{ t('cardPosition', { index: index() + 1, count: round().length }) }}</span>
+              </div>
+              <div
+                class="progress"
+                role="progressbar"
+                [attr.aria-label]="t('progress')"
+                [attr.aria-valuenow]="index() + 1"
+                aria-valuemin="1"
+                [attr.aria-valuemax]="round().length"
+              >
+                <div
+                  class="progress-bar"
+                  [style.width.%]="((index() + 1) / round().length) * 100"
+                ></div>
+              </div>
+              <button class="practice-card" (click)="flip()" [attr.aria-label]="t('flip')">
+                <!-- A fresh inner panel resets navigation without replacing the focused button. -->
+                @for (panel of [{ version: practiceCardVersion() }]; track panel.version) {
+                  <span class="practice-card-inner" [class.is-flipped]="flipped()">
+                    <span
+                      class="practice-card-face practice-card-front"
+                      [attr.aria-hidden]="flipped()"
+                    >
+                      <span class="face-label">{{ t('front') }}</span>
+                      @if (card.front_type === 'image') {
+                        <img [src]="card.front_content" [alt]="t('frontAlt')" />
+                      } @else {
+                        <span class="practice-text">{{ card.front_content }}</span>
+                      }
+                      <span class="flip-hint"
+                        ><i class="fa-solid fa-rotate" aria-hidden="true"></i
+                        >{{ t('reveal') }}</span
+                      >
+                    </span>
+                    <span
+                      class="practice-card-face practice-card-back"
+                      [attr.aria-hidden]="!flipped()"
+                    >
+                      <span class="face-label">{{ t('back') }}</span>
+                      @if (card.back_type === 'image') {
+                        <img [src]="card.back_content" [alt]="t('backAlt')" />
+                      } @else {
+                        <span class="practice-text">{{ card.back_content }}</span>
+                      }
+                      <span class="flip-hint"
+                        ><i class="fa-solid fa-rotate" aria-hidden="true"></i
+                        >{{ t('seeQuestion') }}</span
+                      >
+                    </span>
+                  </span>
+                }
+              </button>
+              <p class="practice-note">
+                {{ flipped() ? card.back_explanation : card.front_instruction }}
+              </p>
+              <div class="practice-controls">
+                <button
+                  class="btn btn-outline-secondary"
+                  (click)="move(-1)"
+                  [disabled]="index() === 0"
+                >
+                  <i class="fa-solid fa-arrow-left" aria-hidden="true"></i
+                  >{{ t('previous') }}</button
+                ><button class="btn btn-link" (click)="newRound()">
+                  <i class="fa-solid fa-shuffle" aria-hidden="true"></i>{{ t('shuffle') }}</button
+                ><button
+                  class="btn btn-primary"
+                  (click)="move(1)"
+                  [disabled]="index() === round().length - 1"
+                >
+                  {{ t('next') }}<i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </button>
+              </div>
+              @if (index() === round().length - 1 && flipped()) {
+                <p class="round-complete">
+                  <i class="fa-solid fa-star" aria-hidden="true"></i>{{ t('complete') }}
+                </p>
+              }
+              <p class="keyboard-tip">{{ t('keyboard') }}</p>
+            </section>
+          } @else {
+            <section class="empty-state">
+              <div class="empty-art"><i class="fa-solid fa-seedling" aria-hidden="true"></i></div>
+              <h2>{{ t('ready') }}</h2>
+              <p>{{ t(canEdit(set) ? 'emptyPractice' : 'emptyReadOnlyPractice') }}</p>
+              @if (canEdit(set)) {
+                <button class="btn btn-primary" (click)="switchMode('edit')">
+                  {{ t('goEdit') }}
+                </button>
+              }
+            </section>
+          }
+        }
+      } @else {
+        <section class="page-heading">
+          <div>
+            <div class="eyebrow">{{ t('bigIdeas') }}</div>
+            <h1>{{ t('learnNew') }}</h1>
+            <p>{{ t('discoveries') }}</p>
+          </div>
+          @if (user()) {
+            <button class="btn btn-primary" (click)="openSet()" [disabled]="busy()">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>{{ t('createSet') }}
+            </button>
+          }
+        </section>
+        <section class="welcome-banner">
+          <div>
+            <span class="banner-label"
+              ><i class="fa-regular fa-star" aria-hidden="true"></i>{{ t('feelsPlay') }}</span
+            >
+            <h2>{{ t('littlePractice') }}<br />{{ t('possibility') }}</h2>
+            <p>{{ t('biteSized') }}<br />{{ t(user() ? 'curiosity' : 'guestCuriosity') }}</p>
+            @if (user()) {
+              <button class="banner-link" (click)="openSet()">
+                {{ t('firstDiscovery') }}<i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              </button>
+            }
+          </div>
+          <div class="banner-art" aria-hidden="true">
+            <div class="decor-card back"><i class="fa-solid fa-sun"></i></div>
+            <div class="decor-card front">
+              <i class="fa-solid fa-seedling"></i
+              ><span>{{ t('growLittle') }}<br />{{ t('everyDay') }}</span>
+            </div>
+            <span class="sparkle s1">✦</span><span class="sparkle s2">✧</span>
+          </div>
+        </section>
+        <div class="section-title">
+          <div>
+            <h2>
+              {{ t(user() ? 'mySets' : 'publicSets')
+              }}<span class="count-pill">{{ sets().length }}</span>
+            </h2>
+            <p>{{ t('totalCards', { count: totalCards() }) }}</p>
+          </div>
+          <label class="search-box"
+            ><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i
+            ><input
+              [attr.aria-label]="t('search')"
+              [placeholder]="t('findSet')"
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event)"
+          /></label>
+        </div>
+        @if (loading()) {
+          <div class="empty-state" role="status">{{ t('loading') }}</div>
+        } @else if (failure()) {
+          <section class="empty-state">
+            <h2>{{ t('loadFailed') }}</h2>
+            <p>{{ t('checkServer') }}</p>
+            <button class="btn btn-primary" (click)="load()">{{ t('retry') }}</button>
+          </section>
+        } @else if (!sets().length) {
+          <section class="empty-state library-empty">
+            <div class="empty-art">
+              <i class="fa-regular fa-folder-open" aria-hidden="true"></i><span>✦</span>
+            </div>
+            <h2>{{ t('adventure') }}</h2>
+            <p>
+              {{ t(user() ? 'setHome' : 'noPublicSets') }}
+              @if (user()) {
+                <br />{{ t('nameLesson') }}
+              }
+            </p>
+            @if (user()) {
+              <button class="btn btn-primary" (click)="openSet()">
+                {{ t('createFirstSet') }}<i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              </button>
+            }
+            <small>{{ t('anything') }}</small>
+          </section>
+        } @else {
+          <div class="sets-grid">
+            @for (set of filteredSets(); track set.id; let i = $index) {
+              <button class="set-tile" (click)="selectSet(set)">
+                <span class="set-icon" [class.warm]="i % 3 === 1" [class.cool]="i % 3 === 2"
+                  ><i class="fa-solid fa-layer-group" aria-hidden="true"></i
+                ></span>
+                <h3>{{ set.name }}</h3>
+                <span class="visibility-badge">{{ t(set.is_public ? 'public' : 'private') }}</span>
+                <p>{{ set.description || t('newLesson') }}</p>
+                <div>
+                  <span
+                    >{{ set.card_count }}
+                    {{ set.card_count === 1 ? t('flashcard') : t('flashcards') }}</span
+                  ><i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </div>
+              </button>
+            }
+            @if (!filteredSets().length) {
+              <p>{{ t('noMatches') }}</p>
+            }
+          </div>
+        }
+      }
+      <footer class="workspace-footer">
+        <i class="fa-regular fa-heart" aria-hidden="true"></i>{{ t('footer') }}
+      </footer>
+    </div>
+  </main>
+</div>
+@if (editor()) {
+  <div class="dialog-backdrop">
+    <section
+      class="editor-dialog"
+      appDialog
+      (dismiss)="closeEditor()"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="editor-title"
+    >
+      <div class="dialog-heading">
+        <div>
+          <div class="eyebrow">{{ t('yourOwn') }}</div>
+          <h2 id="editor-title">
+            {{
+              t(
+                editor() === 'set'
+                  ? editingId
+                    ? 'editSetTitle'
+                    : 'createSetTitle'
+                  : editingId
+                    ? 'editCardTitle'
+                    : 'createCardTitle'
+              )
+            }}
+          </h2>
+        </div>
+        <button
+          class="icon-button"
+          [attr.aria-label]="t('closeEditor')"
+          (click)="closeEditor()"
+          [disabled]="busy() || uploading()"
+        >
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+      @if (editor() === 'set') {
+        <form #setForm="ngForm" (ngSubmit)="saveSet()">
+          <label for="set-name" class="form-label">{{ t('setName') }}</label
+          ><input
+            id="set-name"
+            name="name"
+            class="form-control"
+            [(ngModel)]="setDraft.name"
+            required
+            maxlength="120"
+            [placeholder]="t('example')"
+          /><label for="set-description" class="form-label mt-3"
+            >{{ t('description') }}<span>{{ t('optional') }}</span></label
+          ><textarea
+            id="set-description"
+            name="description"
+            class="form-control"
+            [(ngModel)]="setDraft.description"
+            maxlength="2000"
+            rows="3"
+            [placeholder]="t('setQuestion')"
+          ></textarea>
+          <div class="form-check mt-3">
+            <input
+              id="set-public"
+              name="is_public"
+              class="form-check-input"
+              type="checkbox"
+              [(ngModel)]="setDraft.is_public"
+              aria-describedby="set-public-help"
+            />
+            <label class="form-check-label" for="set-public">{{ t('publicSet') }}</label>
+          </div>
+          <p id="set-public-help" class="form-text">{{ t('publicHelp') }}</p>
+          <div class="dialog-actions">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              (click)="closeEditor()"
+              [disabled]="busy()"
+            >
+              {{ t('cancel') }}</button
+            ><button
+              class="btn btn-primary"
+              type="submit"
+              [disabled]="setForm.invalid || !setDraft.name.trim() || busy()"
+            >
+              {{ busy() ? t('saving') : t('saveSet') }}
+            </button>
+          </div>
+        </form>
+      } @else {
+        <form #cardForm="ngForm" (ngSubmit)="saveCard()">
+          <div class="face-editors">
+            <section>
+              <h3><span class="face-dot"></span>{{ t('frontFace') }}</h3>
+              <label class="form-label" for="front-type">{{ t('frontShow') }}</label
+              ><select
+                id="front-type"
+                name="front_type"
+                class="form-select"
+                [(ngModel)]="cardDraft.front_type"
+                (ngModelChange)="changeFace('front')"
+                [disabled]="uploading()"
+              >
+                <option value="text">{{ t('text') }}</option>
+                <option value="image">{{ t('picture') }}</option>
+              </select>
+              @if (cardDraft.front_type === 'text') {
+                <label for="front-content" class="form-label mt-3">{{ t('frontText') }}</label
+                ><textarea
+                  id="front-content"
+                  name="front_content"
+                  class="form-control"
+                  [(ngModel)]="cardDraft.front_content"
+                  required
+                  maxlength="10000"
+                  rows="4"
+                  [placeholder]="t('questionIdea')"
+                ></textarea>
+              } @else {
+                <label for="front-picture" class="form-label mt-3">{{ t('frontPicture') }}</label
+                ><input
+                  type="file"
+                  id="front-picture"
+                  class="form-control"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  (change)="upload($event, 'front')"
+                  [disabled]="uploading()"
+                />
+                @if (cardDraft.front_content) {
+                  <img
+                    class="upload-preview"
+                    [src]="cardDraft.front_content"
+                    [alt]="t('frontPreview')"
+                  />
+                }
+                <small>{{ t('formats') }}</small>
+              }
+              <label for="front-instruction" class="form-label mt-3"
+                >{{ t('instruction') }}<span>{{ t('optional') }}</span></label
+              ><textarea
+                id="front-instruction"
+                name="front_instruction"
+                class="form-control"
+                [(ngModel)]="cardDraft.front_instruction"
+                maxlength="2000"
+                rows="2"
+                [placeholder]="t('aloud')"
+              ></textarea>
+            </section>
+            <section>
+              <h3><span class="face-dot warm"></span>{{ t('backFace') }}</h3>
+              <label for="back-type" class="form-label">{{ t('backShow') }}</label
+              ><select
+                id="back-type"
+                name="back_type"
+                class="form-select"
+                [(ngModel)]="cardDraft.back_type"
+                (ngModelChange)="changeFace('back')"
+                [disabled]="uploading()"
+              >
+                <option value="text">{{ t('text') }}</option>
+                <option value="image">{{ t('picture') }}</option>
+              </select>
+              @if (cardDraft.back_type === 'text') {
+                <label for="back-content" class="form-label mt-3">{{ t('backText') }}</label
+                ><textarea
+                  id="back-content"
+                  name="back_content"
+                  class="form-control"
+                  [(ngModel)]="cardDraft.back_content"
+                  required
+                  maxlength="10000"
+                  rows="4"
+                  [placeholder]="t('answerExplanation')"
+                ></textarea>
+              } @else {
+                <label for="back-picture" class="form-label mt-3">{{ t('backPicture') }}</label
+                ><input
+                  type="file"
+                  id="back-picture"
+                  class="form-control"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  (change)="upload($event, 'back')"
+                  [disabled]="uploading()"
+                />
+                @if (cardDraft.back_content) {
+                  <img
+                    class="upload-preview"
+                    [src]="cardDraft.back_content"
+                    [alt]="t('backPreview')"
+                  />
+                }
+                <small>{{ t('formats') }}</small>
+              }
+              <label for="back-explanation" class="form-label mt-3"
+                >{{ t('explanation') }}<span>{{ t('optional') }}</span></label
+              ><textarea
+                id="back-explanation"
+                name="back_explanation"
+                class="form-control"
+                [(ngModel)]="cardDraft.back_explanation"
+                maxlength="2000"
+                rows="2"
+                [placeholder]="t('helpStick')"
+              ></textarea>
+            </section>
+          </div>
+          <div class="dialog-actions">
+            <span>{{ uploading() ? t('uploading') : t('questionDiscovery') }}</span
+            ><button
+              type="button"
+              class="btn btn-outline-secondary"
+              (click)="closeEditor()"
+              [disabled]="busy() || uploading()"
+            >
+              {{ t('cancel') }}</button
+            ><button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="
+                cardForm.invalid ||
+                !cardDraft.front_content.trim() ||
+                !cardDraft.back_content.trim() ||
+                busy() ||
+                uploading()
+              "
+            >
+              {{ busy() ? t('saving') : t('saveCard') }}
+            </button>
+          </div>
+        </form>
+      }
+    </section>
+  </div>
+}
+@if (deleteTarget(); as target) {
+  <div class="dialog-backdrop">
+    <section
+      class="editor-dialog delete-dialog"
+      appDialog
+      (dismiss)="!busy() && deleteTarget.set(null)"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="delete-title"
+    >
+      <h2 id="delete-title">
+        {{ t(target.kind === 'set' ? 'deleteSetTitle' : 'deleteCardTitle') }}
+      </h2>
+      <p>
+        {{
+          t(target.kind === 'set' ? 'deleteSetMessage' : 'deleteCardMessage', { name: target.name })
+        }}
+      </p>
+      <div class="dialog-actions">
+        <button
+          class="btn btn-outline-secondary"
+          (click)="deleteTarget.set(null)"
+          [disabled]="busy()"
+        >
+          {{ t('keep') }}</button
+        ><button class="btn btn-danger" (click)="confirmDelete()" [disabled]="busy()">
+          {{ busy() ? t('deleting') : t(target.kind === 'set' ? 'deleteSet' : 'deleteCard') }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

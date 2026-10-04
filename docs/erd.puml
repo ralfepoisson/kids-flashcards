@@ -1,0 +1,76 @@
+@startuml
+title Kids Flashcards - PostgreSQL ERD
+hide circle
+skinparam linetype ortho
+
+entity "flashcard_sets" as Sets {
+  * id : UUID <<PK>>
+  --
+  * name : varchar(120)
+  * description : varchar(2000) = ''
+  * created_at : timestamptz
+  * is_public : boolean = false
+  owner_subject : varchar(200)
+  owner_account_id : varchar(200)
+}
+
+entity "picture_uploads" as Uploads {
+  * filename : varchar(100) <<PK>>
+  --
+  * owner_subject : varchar(200)
+  * owner_account_id : varchar(200)
+  * created_at : timestamptz
+}
+
+entity "flashcards" as Cards {
+  * id : UUID <<PK>>
+  --
+  * set_id : UUID <<FK>>
+  * position : integer
+  * front_type : varchar(5)
+  * front_content : varchar(10000)
+  * front_instruction : varchar(2000) = ''
+  * back_type : varchar(5)
+  * back_content : varchar(10000)
+  * back_explanation : varchar(2000) = ''
+}
+
+Sets ||--o{ Cards : contains / ON DELETE CASCADE
+Cards ..> Uploads : image content URL (logical reference)
+
+note left of Sets
+  Ownership uses Life2 subject AND accountId.
+  Identifiers are assigned from verified JWT claims.
+  No local user/password table or Life2 database FK.
+  New series are private by default.
+  Public series: readable by anyone, owner-only edits.
+  Private series: owner-only reads and edits.
+  can_edit is computed per caller, not persisted.
+  Nullable owners preserve legacy data during migration;
+  private unowned rows are inaccessible until assigned.
+end note
+
+note right of Uploads
+  New uploads record their authenticated owner.
+  Files reside on disk, outside PostgreSQL.
+  GET permits a visible series reference or upload owner.
+  Legacy images remain protected by series visibility.
+  Image URLs are logical references, not foreign keys.
+  Set/card deletion does not delete files or metadata.
+end note
+
+note right of Cards
+  UNIQUE(set_id, position), deferrable.
+  position is zero-based within a set.
+  Face types are constrained to text or image.
+  Optional captions are stored as empty strings.
+  Reordering submits every card ID exactly once.
+  Image content references an uploaded picture URL.
+  Pictures reside on disk, outside PostgreSQL.
+  Flip state and animation are transient browser state.
+  Interface language is a browser localStorage preference only.
+  Set/card content and captions are never translated.
+  Set ID and mode appear in browser paths; mode is not persisted here.
+  Opening from the library defaults to Practice.
+end note
+@enduml

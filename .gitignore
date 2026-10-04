@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.coverage
+htmlcov/
+
+# Angular / Node
+node_modules/
+dist/
+.angular/
+coverage/
+
+# Local configuration, persisted pictures, and dev process state
+.env
+.env.*
+!.env.example
+src/backend/data/uploads/
+src/backend/tests/.uploads/
+.runtime/
+playwright-report/
+test-results/
+.DS_Store
+
+# Browser acceptance artifacts
+.playwright-cli/
+output/playwright/

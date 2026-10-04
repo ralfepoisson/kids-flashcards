@@ -1,0 +1,109 @@
+@startuml
+title Kids Flashcards - package architecture
+skinparam packageStyle rectangle
+
+actor "Visitor / child" as Visitor
+actor "Series owner" as Owner
+package "Angular SPA (src/frontend)" {
+  [Interface language (English / French)] as Language
+  [Browser localStorage preference] as Preference
+  [Login / callback / logout] as Login
+  [Edit Mode] as Edit
+  [Practice Mode] as Practice
+  [Angular Location / browser history] as Navigation
+  [CSS 3D card faces] as Faces
+  [REST API client] as Client
+  [Bootstrap / Font Awesome] as Styles
+  [toastr notifications] as Toast
+}
+package "Python API (src/backend)" {
+  [FastAPI REST routes] as Routes
+  [Life2 exchange proxy] as Exchange
+  [JWT verification / HttpOnly session] as Auth
+  [Visibility / immutable ownership policy] as Access
+  [Request validation] as Validation
+  [SQLAlchemy persistence] as Persistence
+  [Protected picture upload / serving] as Uploads
+  [Explicit auth schema migration] as Migration
+}
+package "Existing Life2 services" {
+  [Auth registered application sign-in] as Life2
+  [One-time origin-bound handoff exchange] as Handoff
+}
+database "PostgreSQL on localhost\nkids_flashcards" as Database
+folder "Local persisted uploads\ndata/uploads" as Files
+file "Life2 signing-key file\nserver-only configuration" as Key
+
+Visitor --> Practice : public series
+Owner --> Practice : public + own private series
+Owner --> Edit : manage own series / cards / visibility
+Visitor --> Login : header login button
+Login --> Life2 : applicationId + exact callback URL
+Life2 --> Login : /auth/callback?handoff_code=...
+Login --> Client : scrub code; exchange then establish session
+Client --> Exchange : same-origin POST /api/auth/exchange
+Exchange --> Handoff : fixed Auth URL; allowed Origin
+Handoff --> Exchange : Life2 account JWT
+Client --> Auth : POST /api/auth/session
+Auth --> Key : verify HS256 signature
+Routes --> Auth : validate cookie / bearer claims
+Routes --> Access : visible series / owner-only mutation
+Access --> Persistence : subject + account matching
+Auth --> Client : HttpOnly SameSite=Lax cookie
+Owner --> Navigation : deep links / Back / Forward
+Edit --> Navigation : /set/<UUID>/edit
+Practice --> Navigation : /set/<UUID>/practice
+Navigation --> Client : restore visible set from path
+Visitor --> Language : header flag switch
+Language --> Preference : remember en / fr only
+Edit ..> Language : labels / notifications
+Practice ..> Language : accessibility / labels
+Edit --> Client
+Practice --> Client : load visible set
+Practice --> Faces : rotate on click / Space
+Edit ..> Styles
+Practice ..> Styles
+Edit ..> Toast : success / failure feedback
+Login ..> Toast : authentication results
+Client --> Routes : same-origin JSON / multipart
+Routes --> Validation
+Routes --> Persistence
+Routes --> Uploads
+Uploads --> Access : referenced visible series or upload owner
+Uploads --> Persistence : upload ownership metadata
+Persistence --> Database
+Migration --> Database : explicit additive schema change
+Uploads --> Files
+Practice --> Uploads : protected HTTP pictures
+Edit --> Uploads : owned upload previews
+
+note bottom of Auth
+  Validate algorithm, signature, issuer, audience, exp, iat,
+  subject, accountId, and registered applicationId.
+  Cookie writes require an allowed Origin.
+  No tokens or handoff codes in browser storage.
+end note
+note bottom of Access
+  Public: anyone may read / practise; only owner may edit.
+  Private: only matching subject and account may read / edit.
+  New series are private; ownership is assigned server-side.
+  All mutations and uploads require authentication.
+  Inaccessible series / pictures return 404.
+end note
+note bottom of Practice
+  Library / sidebar links open Practice.
+  Only owners can restore Edit via a direct link.
+  Shuffled order persists for previous / next.
+  Navigation / reshuffle resets to the front.
+end note
+note bottom of Faces
+  Grid faces preserve height; backfaces are hidden.
+  400 ms rotateY; instant with reduced motion.
+  Only the active face is exposed to assistive technology.
+end note
+note bottom of Language
+  French by default; flags select French / English.
+  Practice state, drafts, and stored content are unchanged.
+  No API or database language setting.
+end note
+@enduml

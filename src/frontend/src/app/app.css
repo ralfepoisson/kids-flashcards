@@ -1,0 +1,80 @@
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.language-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+}
+.language-toggle:hover {
+  background: #edf1e6;
+}
+@media (max-width: 760px) {
+  .topbar > span {
+    min-width: 0;
+    margin-right: 10px;
+    line-height: 1.4;
+  }
+  .practice-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'previous next'
+      'shuffle shuffle';
+    align-items: stretch;
+  }
+  .practice-controls .btn-outline-secondary {
+    grid-area: previous;
+  }
+  .practice-controls .btn-primary {
+    grid-area: next;
+  }
+  .practice-controls .btn-link {
+    grid-area: shuffle;
+    justify-self: center;
+  }
+}
+
+.auth-button {
+  white-space: nowrap;
+}
+.account-label {
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.visibility-badge {
+  display: inline-block;
+  color: #425539;
+  background: #edf1e6;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+@media (max-width: 760px) {
+  .topbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .account-label,
+  .local-badge {
+    display: none;
+  }
+  .auth-button {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+}
